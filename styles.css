@@ -13,6 +13,9 @@
   --xline: rgba(17,24,39,.78);
   --arrow: rgba(15,23,42,.45);
 
+  --mask-dim: rgba(15,23,42,.10);    /* outside realistic band */
+  --mask-band: rgba(15,23,42,.00);   /* inside realistic band */
+
   --ok-bg:#e7f5f0;
   --ok-text:#0f766e;
   --bad-bg:#fef2f2;
@@ -99,7 +102,33 @@ body{
   margin-bottom: 8px;
 }
 
-.track{ position:relative; padding: 6px 0; }
+.track{
+  position:relative;
+  padding: 6px 0;
+}
+
+.range-mask{
+  position:absolute;
+  left:0;
+  right:0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 10px;
+  border-radius: 999px;
+  pointer-events:none;
+  z-index: 1;
+
+  /* these are set from JS per-row */
+  background: linear-gradient(
+    to right,
+    var(--mask-dim) 0%,
+    var(--mask-dim) var(--rminPct),
+    var(--mask-band) var(--rminPct),
+    var(--mask-band) var(--rmaxPct),
+    var(--mask-dim) var(--rmaxPct),
+    var(--mask-dim) 100%
+  );
+}
 
 input[type="range"]{
   width:100%;
@@ -107,6 +136,8 @@ input[type="range"]{
   -webkit-appearance:none;
   appearance:none;
   background: transparent;
+  position: relative;
+  z-index: 2; /* above mask */
 }
 
 input[type="range"]::-webkit-slider-runnable-track{
@@ -142,14 +173,20 @@ input[type="range"]::-moz-range-thumb{
 
 .ticks{
   display:grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(11, 1fr); /* 0..10 */
   margin-top: 10px;
   color:#111827;
   font-size: 16px;
 }
-.ticks span{ text-align:center; font-variant-numeric: tabular-nums; }
+.ticks span{
+  text-align:center;
+  font-variant-numeric: tabular-nums;
+  opacity: 1;
+}
+.ticks span.dim{
+  opacity: .28; /* outside realistic range */
+}
 
-/* Gap row */
 .gap-row{
   display:grid;
   grid-template-columns: 70px 1fr;
@@ -161,7 +198,6 @@ input[type="range"]::-moz-range-thumb{
 .gap-canvas{ height:70px; }
 #gapSvg{ width:100%; height:100%; display:block; }
 
-/* Overlay */
 .overlay{
   position:absolute;
   inset:0;
@@ -170,7 +206,6 @@ input[type="range"]::-moz-range-thumb{
   pointer-events:none;
 }
 
-/* Status */
 .status{
   flex:0 0 auto;
   border-radius: 14px;
