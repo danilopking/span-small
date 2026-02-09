@@ -11,10 +11,9 @@
   --track-inner:#ffffff;
 
   --xline: rgba(17,24,39,.78);
-  --arrow: rgba(15,23,42,.45);
 
-  --mask-dim: rgba(15,23,42,.10);    /* outside realistic band */
-  --mask-band: rgba(15,23,42,.00);   /* inside realistic band */
+  --mask-dim: rgba(15,23,42,.10);
+  --mask-band: rgba(15,23,42,.00);
 
   --ok-bg:#e7f5f0;
   --ok-text:#0f766e;
@@ -117,8 +116,6 @@ body{
   border-radius: 999px;
   pointer-events:none;
   z-index: 1;
-
-  /* these are set from JS per-row */
   background: linear-gradient(
     to right,
     var(--mask-dim) 0%,
@@ -137,7 +134,7 @@ input[type="range"]{
   appearance:none;
   background: transparent;
   position: relative;
-  z-index: 2; /* above mask */
+  z-index: 2;
 }
 
 input[type="range"]::-webkit-slider-runnable-track{
@@ -173,7 +170,7 @@ input[type="range"]::-moz-range-thumb{
 
 .ticks{
   display:grid;
-  grid-template-columns: repeat(11, 1fr); /* 0..10 */
+  grid-template-columns: repeat(11, 1fr);
   margin-top: 10px;
   color:#111827;
   font-size: 16px;
@@ -183,9 +180,7 @@ input[type="range"]::-moz-range-thumb{
   font-variant-numeric: tabular-nums;
   opacity: 1;
 }
-.ticks span.dim{
-  opacity: .28; /* outside realistic range */
-}
+.ticks span.dim{ opacity: .28; }
 
 .gap-row{
   display:grid;
