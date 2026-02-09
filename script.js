@@ -44,9 +44,7 @@ function setBoxes(){
   for (const k of Object.keys(boxes)) boxes[k].textContent = String(val(k));
 }
 
-/**
- * Build ticks 0..10 and dim outside realistic band for each row.
- */
+/** Build ticks 0..10 and dim outside realistic band */
 function buildTicks(){
   const rows = spansEl.querySelectorAll(".span-row");
   rows.forEach(row => {
@@ -66,29 +64,42 @@ function buildTicks(){
   });
 }
 
-/**
- * Apply realistic band mask percentages to each row (CSS vars).
- */
+/** Apply realistic band mask to each row (0..10 scale) */
 function applyBands(){
   const rows = spansEl.querySelectorAll(".span-row");
   rows.forEach(row => {
     const rmin = parseInt(row.dataset.rmin, 10);
     const rmax = parseInt(row.dataset.rmax, 10);
 
-    // scale is 0..10
     const rminPct = (rmin / 10) * 100;
     const rmaxPct = (rmax / 10) * 100;
 
-    // set on the .track element so its .range-mask reads vars
     const track = row.querySelector(".track");
     track.style.setProperty("--rminPct", `${rminPct}%`);
     track.style.setProperty("--rmaxPct", `${rmaxPct}%`);
   });
 }
 
-/**
- * Thumb point for overlay line (approx) relative to spans container.
- */
+/** Lock slider min/max to realistic band (no moving into gray zone) */
+function lockSlidersToBand(){
+  const rows = spansEl.querySelectorAll(".span-row");
+  rows.forEach(row => {
+    const key = row.dataset.key;
+    const vmin = parseInt(row.dataset.vmin, 10);
+    const vmax = parseInt(row.dataset.vmax, 10);
+
+    const input = sliders[key];
+    input.min = String(vmin);
+    input.max = String(vmax);
+
+    let v = parseInt(input.value, 10);
+    if (v < vmin) v = vmin;
+    if (v > vmax) v = vmax;
+    input.value = String(v);
+  });
+}
+
+/** Thumb point for overlay line (approx) relative to spans container. */
 function sliderPoint(key){
   const input = sliders[key];
   const rect = input.getBoundingClientRect();
@@ -105,9 +116,7 @@ function sliderPoint(key){
   return { x, y };
 }
 
-/**
- * For gap arrow (in gapSvg coords): value -> x within width.
- */
+/** For gap arrow (in gapSvg coords): value -> x within width. */
 function xFromRange(input, width){
   const min = parseInt(input.min,10);
   const max = parseInt(input.max,10);
@@ -129,7 +138,6 @@ function renderGapArrow(){
 
   const left = Math.min(xC, xA);
   const right = Math.max(xC, xA);
-
   const y = h * 0.50;
 
   const stroke = "rgba(15,23,42,.38)";
@@ -177,6 +185,7 @@ function segmentsIntersect(a,b,c,d){
     return Math.min(p.x,r.x) <= q.x && q.x <= Math.max(p.x,r.x) &&
            Math.min(p.y,r.y) <= q.y && q.y <= Math.max(p.y,r.y);
   }
+
   const o1 = orient(a,b,c);
   const o2 = orient(a,b,d);
   const o3 = orient(c,d,a);
@@ -246,4 +255,5 @@ new ResizeObserver(() => render()).observe(panel);
 
 buildTicks();
 applyBands();
+lockSlidersToBand();
 render();
