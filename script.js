@@ -27,8 +27,6 @@ const ticksEl = {
 const statusEl = document.getElementById("status");
 const statusText = document.getElementById("statusText");
 
-function val(key){ return parseInt(sliders[key].value, 10); }
-
 function clear(node){
   while(node.firstChild) node.removeChild(node.firstChild);
 }
@@ -38,6 +36,35 @@ function svgEl(tag, attrs, parent){
   for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   parent.appendChild(el);
   return el;
+}
+
+function getRow(key){
+  return spansEl.querySelector(`.span-row[data-key="${key}"]`);
+}
+
+function clampValueToBand(key){
+  const row = getRow(key);
+  if (!row) return;
+
+  const lock = row.dataset.lock === "1";
+  if (!lock) return; // Influence свободный (0..10)
+
+  const rmin = parseInt(row.dataset.rmin, 10);
+  const rmax = parseInt(row.dataset.rmax, 10);
+
+  const input = sliders[key];
+  let v = parseInt(input.value, 10);
+
+  if (v < rmin) v = rmin;
+  if (v > rmax) v = rmax;
+
+  if (String(v) !== input.value) input.value = String(v);
+}
+
+function val(key){
+  // гарантируем кламп перед чтением
+  clampValueToBand(key);
+  return parseInt(sliders[key].value, 10);
 }
 
 function setBoxes(){
@@ -80,33 +107,14 @@ function applyBands(){
   });
 }
 
-/** Lock slider min/max to realistic band (no moving into gray zone) */
-function lockSlidersToBand(){
-  const rows = spansEl.querySelectorAll(".span-row");
-  rows.forEach(row => {
-    const key = row.dataset.key;
-    const vmin = parseInt(row.dataset.vmin, 10);
-    const vmax = parseInt(row.dataset.vmax, 10);
-
-    const input = sliders[key];
-    input.min = String(vmin);
-    input.max = String(vmax);
-
-    let v = parseInt(input.value, 10);
-    if (v < vmin) v = vmin;
-    if (v > vmax) v = vmax;
-    input.value = String(v);
-  });
-}
-
-/** Thumb point for overlay line (approx) relative to spans container. */
+/** Thumb point for overlay line (0..10 scale across full width) */
 function sliderPoint(key){
   const input = sliders[key];
   const rect = input.getBoundingClientRect();
   const host = spansEl.getBoundingClientRect();
 
-  const min = parseInt(input.min,10);
-  const max = parseInt(input.max,10);
+  const min = parseInt(input.min,10); // 0
+  const max = parseInt(input.max,10); // 10
   const v = val(key);
   const t = (v - min) / (max - min);
 
@@ -116,10 +124,10 @@ function sliderPoint(key){
   return { x, y };
 }
 
-/** For gap arrow (in gapSvg coords): value -> x within width. */
+/** For gap arrow (fixed 0..10 coords) */
 function xFromRange(input, width){
-  const min = parseInt(input.min,10);
-  const max = parseInt(input.max,10);
+  const min = parseInt(input.min,10); // 0
+  const max = parseInt(input.max,10); // 10
   const v = parseInt(input.value,10);
   const t = (v - min) / (max - min);
   return t * width;
@@ -132,6 +140,10 @@ function renderGapArrow(){
   gapSvg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   gapSvg.setAttribute("preserveAspectRatio", "none");
   clear(gapSvg);
+
+  // clamp before reading
+  clampValueToBand("control");
+  clampValueToBand("accountability");
 
   const xC = xFromRange(sliders.control, w);
   const xA = xFromRange(sliders.accountability, w);
@@ -245,15 +257,22 @@ function renderXTest(){
 }
 
 function render(){
+  // на всякий случай клампим все перед отрисовкой
+  ["control","accountability","influence","support"].forEach(clampValueToBand);
   setBoxes();
   renderGapArrow();
   renderXTest();
 }
 
-Object.values(sliders).forEach(inp => inp.addEventListener("input", render));
+Object.entries(sliders).forEach(([key, inp]) => {
+  inp.addEventListener("input", () => {
+    clampValueToBand(key); // вот это и “не даёт уехать в серую зону”
+    render();
+  });
+});
+
 new ResizeObserver(() => render()).observe(panel);
 
 buildTicks();
 applyBands();
-lockSlidersToBand();
 render();
