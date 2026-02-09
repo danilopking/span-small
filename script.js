@@ -17,14 +17,17 @@ const boxes = {
   support: document.getElementById("box-support"),
 };
 
+const ticksEl = {
+  control: document.getElementById("ticks-control"),
+  accountability: document.getElementById("ticks-accountability"),
+  influence: document.getElementById("ticks-influence"),
+  support: document.getElementById("ticks-support"),
+};
+
 const statusEl = document.getElementById("status");
 const statusText = document.getElementById("statusText");
 
 function val(key){ return parseInt(sliders[key].value, 10); }
-
-function setBoxes(){
-  for (const k of Object.keys(boxes)) boxes[k].textContent = String(val(k));
-}
 
 function clear(node){
   while(node.firstChild) node.removeChild(node.firstChild);
@@ -37,6 +40,55 @@ function svgEl(tag, attrs, parent){
   return el;
 }
 
+function setBoxes(){
+  for (const k of Object.keys(boxes)) boxes[k].textContent = String(val(k));
+}
+
+/**
+ * Build ticks 0..10 and dim outside realistic band for each row.
+ */
+function buildTicks(){
+  const rows = spansEl.querySelectorAll(".span-row");
+  rows.forEach(row => {
+    const key = row.dataset.key;
+    const rmin = parseInt(row.dataset.rmin, 10);
+    const rmax = parseInt(row.dataset.rmax, 10);
+
+    const el = ticksEl[key];
+    clear(el);
+
+    for (let i = 0; i <= 10; i++){
+      const s = document.createElement("span");
+      s.textContent = String(i);
+      if (i < rmin || i > rmax) s.classList.add("dim");
+      el.appendChild(s);
+    }
+  });
+}
+
+/**
+ * Apply realistic band mask percentages to each row (CSS vars).
+ */
+function applyBands(){
+  const rows = spansEl.querySelectorAll(".span-row");
+  rows.forEach(row => {
+    const rmin = parseInt(row.dataset.rmin, 10);
+    const rmax = parseInt(row.dataset.rmax, 10);
+
+    // scale is 0..10
+    const rminPct = (rmin / 10) * 100;
+    const rmaxPct = (rmax / 10) * 100;
+
+    // set on the .track element so its .range-mask reads vars
+    const track = row.querySelector(".track");
+    track.style.setProperty("--rminPct", `${rminPct}%`);
+    track.style.setProperty("--rmaxPct", `${rmaxPct}%`);
+  });
+}
+
+/**
+ * Thumb point for overlay line (approx) relative to spans container.
+ */
 function sliderPoint(key){
   const input = sliders[key];
   const rect = input.getBoundingClientRect();
@@ -53,6 +105,9 @@ function sliderPoint(key){
   return { x, y };
 }
 
+/**
+ * For gap arrow (in gapSvg coords): value -> x within width.
+ */
 function xFromRange(input, width){
   const min = parseInt(input.min,10);
   const max = parseInt(input.max,10);
@@ -77,8 +132,8 @@ function renderGapArrow(){
 
   const y = h * 0.50;
 
-  const stroke = "rgba(15,23,42,.45)";
-  const fill = "rgba(15,23,42,.45)";
+  const stroke = "rgba(15,23,42,.38)";
+  const fill = "rgba(15,23,42,.38)";
 
   const head = 14;
   const half = 7;
@@ -106,16 +161,15 @@ function renderGapArrow(){
   svgEl("text", {
     x: (left + right) / 2,
     y: y + 26,
-    fill: "rgba(15,23,42,.55)",
+    fill: "rgba(15,23,42,.50)",
     "font-size": 18,
     "text-anchor": "middle",
     "font-family": "ui-sans-serif, system-ui"
   }, gapSvg).textContent = "Entrepreneurial Gap";
 }
 
-/** Geometry: do two segments intersect? */
+/** Segment intersection (X-test) */
 function segmentsIntersect(a,b,c,d){
-  // a-b and c-d
   function orient(p,q,r){
     return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
   }
@@ -131,7 +185,6 @@ function segmentsIntersect(a,b,c,d){
   if ((o1 > 0 && o2 < 0 || o1 < 0 && o2 > 0) &&
       (o3 > 0 && o4 < 0 || o3 < 0 && o4 > 0)) return true;
 
-  // collinear cases (rare here, but ok)
   if (o1 === 0 && onSeg(a,c,b)) return true;
   if (o2 === 0 && onSeg(a,d,b)) return true;
   if (o3 === 0 && onSeg(c,a,d)) return true;
@@ -151,7 +204,7 @@ function renderXTest(){
   const pInfluence = sliderPoint("influence");
   const pSupport = sliderPoint("support");
 
-  // JDOT-style “X”: (Control ↔ Influence) and (Accountability ↔ Support)
+  // X-test: Control ↔ Influence, Accountability ↔ Support
   svgEl("line", {
     x1: pControl.x, y1: pControl.y,
     x2: pInfluence.x, y2: pInfluence.y,
@@ -170,16 +223,15 @@ function renderXTest(){
     "stroke-linecap": "round",
   }, overlaySvg);
 
-  // Balanced if the two segments intersect (form an X)
   const balanced = segmentsIntersect(pControl, pInfluence, pAcc, pSupport);
 
   statusEl.classList.remove("ok","bad");
   if (balanced){
     statusEl.classList.add("ok");
-    statusText.textContent = "This job is balanced.";
+    statusText.textContent = "This job is balanced (X-test).";
   } else {
     statusEl.classList.add("bad");
-    statusText.textContent = "This job is imbalanced.";
+    statusText.textContent = "This job is imbalanced (X-test).";
   }
 }
 
@@ -192,4 +244,6 @@ function render(){
 Object.values(sliders).forEach(inp => inp.addEventListener("input", render));
 new ResizeObserver(() => render()).observe(panel);
 
+buildTicks();
+applyBands();
 render();
