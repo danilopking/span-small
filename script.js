@@ -1,199 +1,79 @@
 const panel = document.getElementById("panel");
-const spansEl = document.getElementById("spans");
-const overlaySvg = document.getElementById("overlaySvg");
-const gapSvg = document.getElementById("gapSvg");
 
 const sliders = {
-  control: document.getElementById("s-control"),
-  accountability: document.getElementById("s-accountability"),
-  influence: document.getElementById("s-influence"),
-  support: document.getElementById("s-support"),
+  control: document.getElementById("rng-control"),
+  accountability: document.getElementById("rng-accountability"),
+  influence: document.getElementById("rng-influence"),
+  support: document.getElementById("rng-support"),
 };
 
-const boxes = {
-  control: document.getElementById("box-control"),
-  accountability: document.getElementById("box-accountability"),
-  influence: document.getElementById("box-influence"),
-  support: document.getElementById("box-support"),
+const values = {
+  control: document.getElementById("val-control"),
+  accountability: document.getElementById("val-accountability"),
+  influence: document.getElementById("val-influence"),
+  support: document.getElementById("val-support"),
 };
 
-const ticksEl = {
+const ticks = {
   control: document.getElementById("ticks-control"),
   accountability: document.getElementById("ticks-accountability"),
   influence: document.getElementById("ticks-influence"),
   support: document.getElementById("ticks-support"),
 };
 
-const statusEl = document.getElementById("status");
+const lineCS = document.getElementById("lineCS"); // Control -> Support
+const lineAI = document.getElementById("lineAI"); // Accountability -> Influence
+
+const status = document.getElementById("status");
+const statusIcon = document.getElementById("statusIcon");
 const statusText = document.getElementById("statusText");
 
-function clear(node){
-  while(node.firstChild) node.removeChild(node.firstChild);
+const gapArrow = document.getElementById("gapArrow");
+
+function getActiveRange(input){
+  return { amin: Number(input.min), amax: Number(input.max) };
 }
 
-function svgEl(tag, attrs, parent){
-  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-  for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, String(v));
-  parent.appendChild(el);
-  return el;
+function buildTicks(key){
+  const el = ticks[key];
+  el.innerHTML = "";
+  const { amin, amax } = getActiveRange(sliders[key]);
+
+  for (let i = 0; i <= 10; i++){
+    const t = document.createElement("div");
+    t.className = "tick" + ((i < amin || i > amax) ? " inactive" : "");
+    t.textContent = String(i);
+    el.appendChild(t);
+  }
 }
 
-function getRow(key){
-  return spansEl.querySelector(`.span-row[data-key="${key}"]`);
-}
-
-function clampValueToBand(key){
-  const row = getRow(key);
-  if (!row) return;
-
-  const lock = row.dataset.lock === "1";
-  if (!lock) return; // Influence свободный (0..10)
-
-  const rmin = parseInt(row.dataset.rmin, 10);
-  const rmax = parseInt(row.dataset.rmax, 10);
-
-  const input = sliders[key];
-  let v = parseInt(input.value, 10);
-
-  if (v < rmin) v = rmin;
-  if (v > rmax) v = rmax;
-
-  if (String(v) !== input.value) input.value = String(v);
-}
-
-function val(key){
-  // гарантируем кламп перед чтением
-  clampValueToBand(key);
-  return parseInt(sliders[key].value, 10);
-}
-
-function setBoxes(){
-  for (const k of Object.keys(boxes)) boxes[k].textContent = String(val(k));
-}
-
-/** Build ticks 0..10 and dim outside realistic band */
-function buildTicks(){
-  const rows = spansEl.querySelectorAll(".span-row");
-  rows.forEach(row => {
-    const key = row.dataset.key;
-    const rmin = parseInt(row.dataset.rmin, 10);
-    const rmax = parseInt(row.dataset.rmax, 10);
-
-    const el = ticksEl[key];
-    clear(el);
-
-    for (let i = 0; i <= 10; i++){
-      const s = document.createElement("span");
-      s.textContent = String(i);
-      if (i < rmin || i > rmax) s.classList.add("dim");
-      el.appendChild(s);
-    }
+function setValueBoxes(){
+  Object.keys(sliders).forEach((k) => {
+    values[k].textContent = sliders[k].value;
   });
 }
 
-/** Apply realistic band mask to each row (0..10 scale) */
-function applyBands(){
-  const rows = spansEl.querySelectorAll(".span-row");
-  rows.forEach(row => {
-    const rmin = parseInt(row.dataset.rmin, 10);
-    const rmax = parseInt(row.dataset.rmax, 10);
-
-    const rminPct = (rmin / 10) * 100;
-    const rmaxPct = (rmax / 10) * 100;
-
-    const track = row.querySelector(".track");
-    track.style.setProperty("--rminPct", `${rminPct}%`);
-    track.style.setProperty("--rmaxPct", `${rmaxPct}%`);
-  });
-}
-
-/** Thumb point for overlay line (0..10 scale across full width) */
-function sliderPoint(key){
-  const input = sliders[key];
+function getThumbCenter(input){
   const rect = input.getBoundingClientRect();
-  const host = spansEl.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
 
-  const min = parseInt(input.min,10); // 0
-  const max = parseInt(input.max,10); // 10
-  const v = val(key);
-  const t = (v - min) / (max - min);
+  const min = Number(input.min);
+  const max = Number(input.max);
+  const val = Number(input.value);
 
-  const x = (rect.left - host.left) + t * rect.width;
-  const y = (rect.top - host.top) + rect.height / 2;
+  // ratio only across ACTIVE span
+  const ratio = (val - min) / (max - min);
+  const x = rect.left + ratio * rect.width;
+  const y = rect.top + rect.height / 2;
 
-  return { x, y };
+  return { x: x - panelRect.left, y: y - panelRect.top };
 }
 
-/** For gap arrow (fixed 0..10 coords) */
-function xFromRange(input, width){
-  const min = parseInt(input.min,10); // 0
-  const max = parseInt(input.max,10); // 10
-  const v = parseInt(input.value,10);
-  const t = (v - min) / (max - min);
-  return t * width;
-}
-
-function renderGapArrow(){
-  const w = gapSvg.clientWidth;
-  const h = gapSvg.clientHeight;
-
-  gapSvg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  gapSvg.setAttribute("preserveAspectRatio", "none");
-  clear(gapSvg);
-
-  // clamp before reading
-  clampValueToBand("control");
-  clampValueToBand("accountability");
-
-  const xC = xFromRange(sliders.control, w);
-  const xA = xFromRange(sliders.accountability, w);
-
-  const left = Math.min(xC, xA);
-  const right = Math.max(xC, xA);
-  const y = h * 0.50;
-
-  const stroke = "rgba(15,23,42,.38)";
-  const fill = "rgba(15,23,42,.38)";
-
-  const head = 14;
-  const half = 7;
-
-  svgEl("line", {
-    x1: left + head,
-    y1: y,
-    x2: right - head,
-    y2: y,
-    stroke,
-    "stroke-width": 3,
-    "stroke-linecap": "round",
-  }, gapSvg);
-
-  svgEl("path", {
-    d: `M ${left + head} ${y - half} L ${left} ${y} L ${left + head} ${y + half} Z`,
-    fill
-  }, gapSvg);
-
-  svgEl("path", {
-    d: `M ${right - head} ${y - half} L ${right} ${y} L ${right - head} ${y + half} Z`,
-    fill
-  }, gapSvg);
-
-  svgEl("text", {
-    x: (left + right) / 2,
-    y: y + 26,
-    fill: "rgba(15,23,42,.50)",
-    "font-size": 18,
-    "text-anchor": "middle",
-    "font-family": "ui-sans-serif, system-ui"
-  }, gapSvg).textContent = "Entrepreneurial Gap";
-}
-
-/** Segment intersection (X-test) */
-function segmentsIntersect(a,b,c,d){
-  function orient(p,q,r){
+function segmentsIntersect(a, b, c, d){
+  function orient(p, q, r){
     return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
   }
-  function onSeg(p,q,r){
+  function onSeg(p, q, r){
     return Math.min(p.x,r.x) <= q.x && q.x <= Math.max(p.x,r.x) &&
            Math.min(p.y,r.y) <= q.y && q.y <= Math.max(p.y,r.y);
   }
@@ -214,65 +94,99 @@ function segmentsIntersect(a,b,c,d){
   return false;
 }
 
-function renderXTest(){
-  const host = spansEl.getBoundingClientRect();
-  overlaySvg.setAttribute("viewBox", `0 0 ${host.width} ${host.height}`);
-  overlaySvg.setAttribute("preserveAspectRatio", "none");
-  clear(overlaySvg);
+function drawGapArrow(controlVal, accountabilityVal){
+  gapArrow.innerHTML = "";
 
-  const pControl = sliderPoint("control");
-  const pAcc = sliderPoint("accountability");
-  const pInfluence = sliderPoint("influence");
-  const pSupport = sliderPoint("support");
+  const start = Math.min(controlVal, accountabilityVal);
+  const end = Math.max(controlVal, accountabilityVal);
 
-  // X-test: Control ↔ Influence, Accountability ↔ Support
-  svgEl("line", {
-    x1: pControl.x, y1: pControl.y,
-    x2: pInfluence.x, y2: pInfluence.y,
-    stroke: "rgba(17,24,39,.78)",
-    "stroke-width": 2.2,
-    "stroke-dasharray": "2 5",
-    "stroke-linecap": "round",
-  }, overlaySvg);
+  // 0..10 visual scale
+  const startPct = (start / 10) * 100;
+  const endPct = (end / 10) * 100;
 
-  svgEl("line", {
-    x1: pAcc.x, y1: pAcc.y,
-    x2: pSupport.x, y2: pSupport.y,
-    stroke: "rgba(17,24,39,.78)",
-    "stroke-width": 2.2,
-    "stroke-dasharray": "2 5",
-    "stroke-linecap": "round",
-  }, overlaySvg);
+  const line = document.createElement("div");
+  line.style.position = "absolute";
+  line.style.left = `${startPct}%`;
+  line.style.width = `${Math.max(0, endPct - startPct)}%`;
+  line.style.top = "10px";
+  line.style.height = "8px";
+  line.style.borderTop = "3px solid #9aa3af";
+  line.style.opacity = "0.9";
 
-  const balanced = segmentsIntersect(pControl, pInfluence, pAcc, pSupport);
+  const leftHead = document.createElement("div");
+  leftHead.style.position = "absolute";
+  leftHead.style.left = "0";
+  leftHead.style.top = "-6px";
+  leftHead.style.width = "0";
+  leftHead.style.height = "0";
+  leftHead.style.borderTop = "6px solid transparent";
+  leftHead.style.borderBottom = "6px solid transparent";
+  leftHead.style.borderRight = "10px solid #9aa3af";
 
-  statusEl.classList.remove("ok","bad");
+  const rightHead = document.createElement("div");
+  rightHead.style.position = "absolute";
+  rightHead.style.right = "0";
+  rightHead.style.top = "-6px";
+  rightHead.style.width = "0";
+  rightHead.style.height = "0";
+  rightHead.style.borderTop = "6px solid transparent";
+  rightHead.style.borderBottom = "6px solid transparent";
+  rightHead.style.borderLeft = "10px solid #9aa3af";
+
+  if (start === end){
+    line.style.width = "0";
+    leftHead.style.display = "none";
+    rightHead.style.display = "none";
+  }
+
+  line.appendChild(leftHead);
+  line.appendChild(rightHead);
+  gapArrow.appendChild(line);
+}
+
+function update(){
+  setValueBoxes();
+
+  const pControl = getThumbCenter(sliders.control);
+  const pSupport = getThumbCenter(sliders.support);
+  const pAcc = getThumbCenter(sliders.accountability);
+  const pInf = getThumbCenter(sliders.influence);
+
+  lineCS.setAttribute("x1", pControl.x);
+  lineCS.setAttribute("y1", pControl.y);
+  lineCS.setAttribute("x2", pSupport.x);
+  lineCS.setAttribute("y2", pSupport.y);
+
+  lineAI.setAttribute("x1", pAcc.x);
+  lineAI.setAttribute("y1", pAcc.y);
+  lineAI.setAttribute("x2", pInf.x);
+  lineAI.setAttribute("y2", pInf.y);
+
+  const balanced = segmentsIntersect(pControl, pSupport, pAcc, pInf);
+
   if (balanced){
-    statusEl.classList.add("ok");
+    status.classList.remove("bad");
+    status.classList.add("ok");
+    statusIcon.textContent = "✓";
     statusText.textContent = "This job is balanced (X-test).";
   } else {
-    statusEl.classList.add("bad");
+    status.classList.remove("ok");
+    status.classList.add("bad");
+    statusIcon.textContent = "✕";
     statusText.textContent = "This job is imbalanced (X-test).";
   }
+
+  drawGapArrow(Number(sliders.control.value), Number(sliders.accountability.value));
 }
 
-function render(){
-  // на всякий случай клампим все перед отрисовкой
-  ["control","accountability","influence","support"].forEach(clampValueToBand);
-  setBoxes();
-  renderGapArrow();
-  renderXTest();
-}
-
-Object.entries(sliders).forEach(([key, inp]) => {
-  inp.addEventListener("input", () => {
-    clampValueToBand(key); // вот это и “не даёт уехать в серую зону”
-    render();
+function init(){
+  Object.keys(sliders).forEach((k) => {
+    buildTicks(k);
+    sliders[k].addEventListener("input", update);
+    sliders[k].addEventListener("change", update);
   });
-});
+  update();
+}
 
-new ResizeObserver(() => render()).observe(panel);
-
-buildTicks();
-applyBands();
-render();
+init();
+window.addEventListener("resize", update);
