@@ -3,134 +3,116 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Job Design Spans (Small Team)</title>
+  <title>Job Design Spans — Small Team</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
+
 <body>
-  <main class="page">
-    <section class="panel" id="panel">
-      <div class="spans" id="spans">
+  <main class="wrap">
+    <section class="card">
+      <div class="panel" id="panel">
 
-        <!-- Row 1 -->
-        <div class="span-row"
-             data-key="control"
-             data-rmin="1" data-rmax="4"
-             data-lock="1">
-          <div class="row-title">Span of Control</div>
+        <!-- CONTROL -->
+        <div class="row" data-key="control">
+          <div class="left">
+            <h3 class="h">Span of Control</h3>
+            <div class="valueBox" id="val-control">3</div>
+          </div>
 
-          <div class="row-grid">
-            <div class="value-box" id="box-control">3</div>
+          <div class="right">
+            <div class="labels">
+              <span>Few Resources</span>
+              <span>Many Resources</span>
+            </div>
 
-            <div class="track-wrap">
-              <div class="track-labels">
-                <span>Few Resources</span>
-                <span>Many Resources</span>
-              </div>
-
-              <div class="track">
-                <div class="range-mask" aria-hidden="true"></div>
-                <input id="s-control" type="range" min="0" max="10" step="1" value="3" />
-              </div>
-
+            <div class="trackWrap">
+              <!-- ACTIVE RANGE: 1..5 -->
+              <input id="rng-control" class="range" type="range" min="1" max="5" step="1" value="3" />
               <div class="ticks" id="ticks-control" aria-hidden="true"></div>
             </div>
           </div>
         </div>
 
-        <!-- Gap overlay between row 1 and 2 -->
-        <div class="gap-row" aria-hidden="true">
-          <div class="gap-spacer"></div>
-          <div class="gap-canvas">
-            <svg id="gapSvg" viewBox="0 0 760 70" preserveAspectRatio="none"></svg>
-          </div>
+        <!-- GAP LABEL -->
+        <div class="gapRow" aria-hidden="true">
+          <div class="gapLabel">Entrepreneurial Gap</div>
+          <div class="gapArrow" id="gapArrow"></div>
         </div>
 
-        <!-- Row 2 -->
-        <div class="span-row"
-             data-key="accountability"
-             data-rmin="5" data-rmax="10"
-             data-lock="1">
-          <div class="row-title">Span of Accountability</div>
+        <!-- ACCOUNTABILITY -->
+        <div class="row" data-key="accountability">
+          <div class="left">
+            <h3 class="h">Span of Accountability</h3>
+            <div class="valueBox" id="val-accountability">8</div>
+          </div>
 
-          <div class="row-grid">
-            <div class="value-box" id="box-accountability">8</div>
+          <div class="right">
+            <div class="labels">
+              <span>Measures Allow Few Trade-Offs</span>
+              <span>Measures Allow Many Trade-Offs</span>
+            </div>
 
-            <div class="track-wrap">
-              <div class="track-labels">
-                <span>Measures Allow Few Trade-Offs</span>
-                <span>Measures Allow Many Trade-Offs</span>
-              </div>
-
-              <div class="track">
-                <div class="range-mask" aria-hidden="true"></div>
-                <input id="s-accountability" type="range" min="0" max="10" step="1" value="8" />
-              </div>
-
+            <div class="trackWrap">
+              <!-- ACTIVE RANGE: 5..10 -->
+              <input id="rng-accountability" class="range" type="range" min="5" max="10" step="1" value="8" />
               <div class="ticks" id="ticks-accountability" aria-hidden="true"></div>
             </div>
           </div>
         </div>
 
-        <!-- Row 3 -->
-        <div class="span-row"
-             data-key="influence"
-             data-rmin="0" data-rmax="10"
-             data-lock="0">
-          <div class="row-title">Span of Influence</div>
+        <!-- INFLUENCE -->
+        <div class="row" data-key="influence">
+          <div class="left">
+            <h3 class="h">Span of Influence</h3>
+            <div class="valueBox" id="val-influence">8</div>
+          </div>
 
-          <div class="row-grid">
-            <div class="value-box" id="box-influence">7</div>
+          <div class="right">
+            <div class="labels">
+              <span>Interactions Within Unit</span>
+              <span>Interaction Across Units</span>
+            </div>
 
-            <div class="track-wrap">
-              <div class="track-labels">
-                <span>Interactions Within Unit</span>
-                <span>Interaction Across Units</span>
-              </div>
-
-              <div class="track">
-                <div class="range-mask" aria-hidden="true"></div>
-                <input id="s-influence" type="range" min="0" max="10" step="1" value="7" />
-              </div>
-
+            <div class="trackWrap">
+              <!-- ACTIVE RANGE: 5..10 -->
+              <input id="rng-influence" class="range" type="range" min="5" max="10" step="1" value="8" />
               <div class="ticks" id="ticks-influence" aria-hidden="true"></div>
             </div>
           </div>
         </div>
 
-        <!-- Row 4 -->
-        <div class="span-row"
-             data-key="support"
-             data-rmin="0" data-rmax="6"
-             data-lock="1">
-          <div class="row-title">Span of Support</div>
+        <!-- SUPPORT -->
+        <div class="row" data-key="support">
+          <div class="left">
+            <h3 class="h">Span of Support</h3>
+            <div class="valueBox" id="val-support">6</div>
+          </div>
 
-          <div class="row-grid">
-            <div class="value-box" id="box-support">4</div>
+          <div class="right">
+            <div class="labels">
+              <span>No Help From Others</span>
+              <span>Others Willing to Help</span>
+            </div>
 
-            <div class="track-wrap">
-              <div class="track-labels">
-                <span>No Help From Others</span>
-                <span>Others Willing to Help</span>
-              </div>
-
-              <div class="track">
-                <div class="range-mask" aria-hidden="true"></div>
-                <input id="s-support" type="range" min="0" max="10" step="1" value="4" />
-              </div>
-
+            <div class="trackWrap">
+              <!-- ACTIVE RANGE: 5..10 -->
+              <input id="rng-support" class="range" type="range" min="5" max="10" step="1" value="6" />
               <div class="ticks" id="ticks-support" aria-hidden="true"></div>
             </div>
           </div>
         </div>
 
-        <!-- Overlay: X-test lines -->
-        <svg id="overlaySvg" class="overlay" aria-hidden="true"></svg>
+        <!-- LINES -->
+        <svg class="overlay" id="overlay" aria-hidden="true">
+          <line id="lineCS" x1="0" y1="0" x2="0" y2="0" />
+          <line id="lineAI" x1="0" y1="0" x2="0" y2="0" />
+        </svg>
 
       </div>
 
       <div class="status ok" id="status">
-        <span class="check" aria-hidden="true">✓</span>
-        <span id="statusText">This job is balanced (X-test).</span>
+        <div class="statusIcon" id="statusIcon" aria-hidden="true">✓</div>
+        <div class="statusText" id="statusText">This job is balanced (X-test).</div>
       </div>
     </section>
   </main>
