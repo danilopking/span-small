@@ -93,6 +93,12 @@ function renderGapArrow(){
   gapSvg.setAttribute("preserveAspectRatio", "none");
   clear(gapSvg);
 
+  // ✅ Change: show ONLY Entrepreneurial Gap, and only when it exists (Control < Accountability).
+  if (val("control") >= val("accountability")) {
+    // nothing in the gap area
+    return;
+  }
+
   const xC = xFromRange(sliders.control, w);
   const xA = xFromRange(sliders.accountability, w);
 
